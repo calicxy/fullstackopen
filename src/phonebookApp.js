@@ -3,6 +3,7 @@ import axios from 'axios'
 import Filter from './components/Filter'
 import PersonForm from './components/PersonForm'
 import Persons from './components/Persons'
+import phonebookService from './services/phonebook'
 
 const App = () => {
 
@@ -34,10 +35,15 @@ const App = () => {
     console.log("name exists in Array: ", foundIndex)
     if (foundIndex === -1){
       const person = { name: newName, number: newNumber }
-  
-      setPersons(persons.concat(person))
-      setNewName('')
-      setNewNumber('')
+      
+      phonebookService
+        .create(person)
+        .then(returnedPersons => {
+          setPersons(persons.concat(returnedPersons))
+          setNewName('')
+          setNewNumber('')
+        })
+      
     }
     else{
       alert(`${newName} is already added to phonebook`)
@@ -61,6 +67,18 @@ const App = () => {
   }
   const personsToShow = persons.filter(person => (person.name).toLowerCase().includes(searchField.toLowerCase()))
 
+  //function to delete a person
+  const deletePerson = (deletedPerson) => {
+
+    if (window.confirm(`Delete ${deletedPerson.name}?`)) {
+      phonebookService
+        .deletePerson(deletedPerson.id)
+        .then(returnedPersons => {
+          setPersons(persons.filter(person => person.id != deletedPerson.id))
+        })
+    }
+  }
+
   return (
     <div>
       <h2>Phonebook</h2>
@@ -68,7 +86,7 @@ const App = () => {
       <h3>Add a new</h3>
       <PersonForm addName={addName} newName={newName} newNumber={newNumber} handleNameChange={handleNameChange} handleNumberChange={handleNumberChange} />
       <h2>Numbers</h2>
-      <Persons personsToShow={personsToShow} />
+      <Persons personsToShow={personsToShow} deletePerson={deletePerson}/>
     </div>
   )
 
