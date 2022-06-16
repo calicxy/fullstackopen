@@ -5,6 +5,18 @@ import PersonForm from './components/PersonForm'
 import Persons from './components/Persons'
 import phonebookService from './services/phonebook'
 
+const Notification = ({ message, type }) => {
+  if (message === null) {
+    return null
+  }
+
+  return (
+    <div className={type}>
+      {message}
+    </div>
+  )
+}
+
 const App = () => {
 
   //initialize states
@@ -12,6 +24,8 @@ const App = () => {
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [searchField, setSearchField] = useState('')
+  const [message, setMessage] = useState(null)
+  const [messageType, setMessageType] = useState('')
 
   //initialize effect
   const hook = () => {
@@ -33,23 +47,45 @@ const App = () => {
 
     const foundIndex = persons.findIndex(person => person.name === newName)
     console.log("name exists in Array: ", foundIndex)
+    const person = { name: newName, number: newNumber }
     if (foundIndex === -1){
-      const person = { name: newName, number: newNumber }
-      
       phonebookService
         .create(person)
         .then(returnedPersons => {
           setPersons(persons.concat(returnedPersons))
-          setNewName('')
-          setNewNumber('')
+          setMessageType('success')
+          setMessage(`${newName} added`)
+          setTimeout(() => {
+            setMessage(null)
+          }, 5000)
         })
       
     }
     else{
-      alert(`${newName} is already added to phonebook`)
-      setNewName('')
-      setNewNumber('')
-    }  
+      const id = persons[foundIndex].id
+      if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)){
+        phonebookService
+          .updatePerson(id, person)
+          .then(returnedPerson => {
+            setPersons(persons.map(item => item.id !== id ? item : returnedPerson))
+            setMessageType('success')
+            setMessage(`${newName}'s number has been updated`)
+            setTimeout(() => {
+              setMessage(null)
+            }, 5000)
+          })
+          .catch(error => {
+            setMessageType('error')
+            setMessage(`${newName} has already been removed`)
+            setTimeout(() => {
+              setMessage(null)
+            }, 5000)
+            setPersons(persons.filter(person => person.id !== id))
+          })
+      }      
+    }
+    setNewName('')
+    setNewNumber('')
   }
 
   //upon changes in the input field
@@ -67,21 +103,36 @@ const App = () => {
   }
   const personsToShow = persons.filter(person => (person.name).toLowerCase().includes(searchField.toLowerCase()))
 
-  //function to delete a person
+  //function when delete button is pressed
   const deletePerson = (deletedPerson) => {
 
     if (window.confirm(`Delete ${deletedPerson.name}?`)) {
       phonebookService
         .deletePerson(deletedPerson.id)
         .then(returnedPersons => {
-          setPersons(persons.filter(person => person.id != deletedPerson.id))
+          setPersons(persons.filter(person => person.id !== deletedPerson.id))
+          setMessage(`${deletedPerson.name} removed`)
+          setTimeout(() => {
+            setMessage(null)
+          }, 5000)
+        })
+        .catch(error => {
+          setMessageType('error')
+          setMessage(`${deletePerson.name} has already been removed`)
+          setTimeout(() => {
+            setMessage(null)
+          }, 5000)
+          setPersons(persons.filter(person => person.id !== deletedPerson.id))
         })
     }
   }
 
+  //
+
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={message} type={messageType} />
       <Filter text='Filter shown with' filterText={searchField} onchange={handleSearchChange}/>
       <h3>Add a new</h3>
       <PersonForm addName={addName} newName={newName} newNumber={newNumber} handleNameChange={handleNameChange} handleNumberChange={handleNumberChange} />
