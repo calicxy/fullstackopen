@@ -1,0 +1,4 @@
+GET http://localhost:3001/api/notes/
+
+###
+//you can make another request here
